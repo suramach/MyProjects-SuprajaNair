@@ -1,0 +1,503 @@
+---
+title: "Final Project"
+output: html_document
+date: "2022-11-14"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# loading the tidyverse packages
+library(tidyverse)
+# getting the data from the url, storing into a data frame called hmo
+hmo <- read_csv("https://intro-datascience.s3.us-east-2.amazonaws.com/HMO_data.csv")
+#removing NAs
+sum(is.na(hmo))
+sum(is.na(hmo$bmi))
+#80
+sum(is.na(hmo$hypertension))
+#68
+sum(is.na(hmo$cost))
+#38
+
+#loading the imputeTS packages
+library(imputeTS)
+# repairing the NAs
+hmo$bmi <- na_interpolation(hmo$bmi)
+hmo$hypertension <- na_interpolation(hmo$hypertension)
+hmo$cost <- na_interpolation(hmo$cost)
+
+# checking the NAs again
+sum(is.na(hmo))
+#0 NAs now
+```
+
+```{r}
+#Create hmo expensive variable
+hmo$expensive <- hmo$cost
+hmo$expensive <-ifelse(hmo$cost>4775,1,0)
+#Creates age categories
+hmo$agecategory[18<=hmo$age & hmo$age<=34] <- "Young-adults"
+hmo$agecategory[35<=hmo$age & hmo$age<=50] <- "Middle-aged"
+hmo$agecategory[51<=hmo$age & hmo$age<=66] <- "older-adults"
+```
+
+```{r}
+#Create bmi categories
+hmo$bmicategory[hmo$bmi < 18 ] <- "Underweight"
+hmo$bmicategory[hmo$bmi >= 18 & hmo$bmi < 25  ] <- "Healthy"
+hmo$bmicategory[hmo$bmi >= 25 & hmo$bmi < 30  ] <- "Overweight"
+hmo$bmicategory[hmo$bmi >= 30 & hmo$bmi < 40  ] <- "Obese"
+hmo$bmicategory[hmo$bmi >= 40 & hmo$bmi < 65  ] <- "Extremely Obese"
+```
+
+```{r}
+#BarPlots
+#descriptive summary stats and viz
+sum(hmo$expensive)
+summary(hmo$cost)
+hist(hmo$cost)
+
+library(ggplot2)
+ggplot(hmo, aes(x=bmi, y=cost)) + geom_point()
+summary(hmo$age)
+
+hmo %>% group_by(location) %>% summarise((n = n()))
+library(dplyr)
+
+#mean cost group by state
+statemean <- hmo %>%
+	group_by(location) %>%
+	summarise(mean_cost = mean(cost))
+
+#mean cost group by age category
+statemeanage <- hmo %>%
+	group_by(agecategory) %>%
+	summarise(mean_cost = mean(cost))
+
+#mean cost group by state
+bar <- ggplot(statemean, aes(x=location, y=mean_cost, fill=location)) +
+  geom_bar(stat="identity")+theme_minimal() + geom_jitter(width=0.15)+
+  theme(axis.text.x = element_text(angle = 45, hjust=1)) + theme(legend.position = "none")+
+  xlab("States")+ylab("Mean Cost")+ ggtitle("Visualizing mean cost with states")
+bar
+
+#mean cost group by age category
+bar2 <- ggplot(statemeanage, aes(x=agecategory, y=mean_cost, fill=agecategory)) + geom_bar(stat="identity")+theme_minimal() + theme(legend.position = "none")+
+xlab("Age categories")+ylab("Mean Cost")+ ggtitle("Visualizing mean cost with age categories")  
+bar2
+
+#mean cost group by gender
+table(hmo$gender)
+
+gendermean <- hmo %>%
+  group_by(gender) %>%
+  summarise(mean_cost = mean(cost))
+
+bar3 <- ggplot(gendermean, aes(x=gender, y=mean_cost, fill=gender)) + geom_bar(stat="identity")+theme_minimal() + theme(legend.position = "none")+
+xlab("Gender")+ylab("Mean Cost")+ ggtitle("Visualizing mean cost with gender")  
+bar3
+
+#mean cost group by smoker
+smokermean <- hmo %>%
+    group_by(smoker) %>%
+    summarise(mean_cost = mean(cost))
+
+bar4 <- ggplot(smokermean,aes(x=smoker, y=mean_cost, fill=smoker)) +
+  geom_bar(stat="identity")+theme_minimal()+theme(legend.position = "none")+
+  xlab("Smoking status")+ylab("Mean Cost")+ ggtitle("Visualizing mean cost with smokers & non-smokers")  
+
+bar4
+
+#mean cost group by exercise
+exercisemean <- hmo %>%
+    group_by(exercise) %>%
+    summarise(mean_cost = mean(cost))
+
+
+bar5 <- ggplot(exercisemean,aes(x=exercise, y=mean_cost, fill=exercise)) + geom_bar(stat="identity")+theme_minimal()+theme(legend.position = "none")+
+xlab("Exercise activity")+ylab("Mean Cost")+ ggtitle("Visualizing mean cost with exercise activity status")    
+bar5
+
+#group by bmi category
+meanbmi <- hmo %>%
+	group_by(bmicategory) %>%
+	summarise(mean_cost = mean(cost))
+
+bar6 <- ggplot(meanbmi, aes(x=bmicategory, y=mean_cost, fill=bmicategory)) + geom_bar(stat="identity")+theme_minimal() + theme(legend.position = "none")+
+xlab("BMI categories")+ylab("Mean Cost")+ ggtitle("Visualizing mean cost with BMI categories")    
+bar6
+
+#mean cost group by number of children
+meanchildren <- hmo %>%
+	group_by(children) %>%
+	summarise(mean_cost = mean(cost))
+
+bar20 <- ggplot(meanchildren, aes(x=children, y=mean_cost, fill=children)) + geom_bar(stat="identity")+theme_minimal() + theme(legend.position = "none")+
+xlab("Number of Children")+ylab("Mean Cost")+ ggtitle("Visualizing mean cost with Number of children")    
+bar20
+
+
+#mean cost group by yearly physical
+physicalmean <- hmo %>%
+    group_by(yearly_physical) %>%
+    summarise(mean_cost = mean(cost))
+
+
+bar21 <- ggplot(physicalmean,aes(x=yearly_physical, y=mean_cost, fill=yearly_physical)) + geom_bar(stat="identity")+theme_minimal()+theme(legend.position = "none")+
+xlab("yearly physical")+ylab("Mean Cost")+ ggtitle("Visualizing mean cost with yearly physical ")    
+bar21
+
+
+
+#Regarding the potential bias in the column of gender, based on this data, perhaps we can state that we'd like to disregard the gender variable, because the sample size of male and female is almost equal, the difference in cost values is not significant, and the coefficient is not significant
+
+
+# mean cost group by hypertension
+table(hmo$hypertension)
+
+hypertensionmean <- hmo %>%
+  group_by(hypertension) %>%
+  summarise(mean_cost = mean(cost))
+
+hypertensionmean
+```
+
+```{r}
+#multiple linear regression
+library(tidyverse)
+hmo_1 <- select(hmo, -expensive)
+modelAll_1 <- lm(cost ~., data = hmo_1)
+summary(modelAll_1)
+  
+#model with significant predictors
+modelSignificant <- lm(cost ~ age + bmi + children + smoker + location + education_level + exercise + married + hypertension, data = hmo)
+summary(modelSignificant)
+#Age, BMI, children, and being a smoker are statistically significant and positive at the 0.01 level. Being from NY is statistically significant and positive at the 0.05 level. Having a PhD is statistically significant at the 0.1 level and negative. Not exercising and hypertension are statistically significant and positive as well at the 0.01 level. Not married is statistically significant and positve at the 0.1 level.
+```
+
+
+```{r}
+# creating the map
+# mean cost group by the state
+stateHmo <- hmo %>%
+  group_by(location) %>%
+  summarise(meanCost = mean(cost))
+
+stateHmo <- data.frame(stateHmo)
+stateHmo$state <- tolower(stateHmo$location)
+
+us <- map_data("state")
+mergeHmo <- merge(stateHmo,us,by.x="state",by.y="region",all.x=T)
+mergeHmo <- mergeHmo %>% arrange(order)
+
+mapHmo <- ggplot(mergeHmo) +
+  geom_polygon(color="black",aes(x=long,y=lat,group=group,fill=meanCost)) +
+  coord_map()
+mapHmo
+```
+
+```{r}
+#Boxplots
+library(ggplot2)
+
+boxplot_state <- ggplot(hmo)+aes(x=cost,y=location)+geom_boxplot() + xlab("Cost")+ylab("States")+ggtitle("Visualization of cost in all the states")
+boxplot_state
+
+boxplot_location_type<- ggplot(hmo)+aes(x=cost,y=location_type)+geom_boxplot()+ xlab("Cost")+ylab("Areas")+ggtitle("Visualization of cost in Urban and Country areas")
+boxplot_location_type
+
+boxplot_age<-ggplot(hmo)+aes(x=cost,y=agecategory)+geom_boxplot() +
+xlab("Cost")+ylab("Age Category")+ggtitle("Visualization of cost with the age categories")
+boxplot_age
+
+boxplot_exercise <- ggplot(hmo) + aes(x=cost,y=exercise)+geom_boxplot() + xlab("Cost")+ylab("Exercise Active")+ggtitle("Visualization of cost with people who actively excercise or not")
+boxplot_exercise
+
+boxplot_married <- ggplot(hmo) + aes(x=cost,y=married)+geom_boxplot() +
+xlab("Cost")+ylab("Marital Status")+ggtitle("Visualization of cost with marital status")
+boxplot_married
+
+boxplot_children <- ggplot(hmo) + aes(x=as.factor(children),y=cost)+geom_boxplot() + xlab("Having Children")+ylab("Cost")+ggtitle("Visualization of cost with how many children this people have")
+boxplot_children
+
+boxplot_education_level <- ggplot(hmo) + aes(x=cost,y=education_level)+geom_boxplot() + xlab("Cost")+ylab("Physically Active")+ggtitle("Visualization of cost with education level of people")
+boxplot_education_level
+
+boxplot_physical <- ggplot(hmo) + aes(x=cost,y=yearly_physical)+geom_boxplot() +
+xlab("Cost")+ylab("Annually visiting doctor")+ggtitle("Visualization of cost with people who visit doctor annualy")
+boxplot_physical
+
+boxplot_gender <- ggplot(hmo) + aes(x=cost,y=gender)+geom_boxplot() + xlab("Cost")+ylab("Gender")+ggtitle("Visualization of cost with gender")
+boxplot_gender
+
+boxplot_smoker <- ggplot(hmo) + aes(x=cost,y=smoker)+geom_boxplot() + xlab("Cost")+ylab("Smoker")+ggtitle("Visualization of cost with smoker")
+boxplot_smoker
+
+boxplot_hypertension <- ggplot(hmo) + aes(x=as.factor(hypertension),y=cost)+geom_boxplot() + xlab("Hypertension")+ylab("Cost")+ggtitle("Visualization of cost with hypertension")
+boxplot_hypertension
+```
+
+
+```{r}
+# looking at the frequency and percentage of being expensive
+# group by atecategory, bmicategory, and state
+hmo%>% group_by(agecategory)%>%
+  summarise(table(expensive))
+
+hmo%>% group_by(bmicategory)%>%
+  summarise(table(expensive))
+
+hmo%>% group_by(location)%>%
+  summarise(table(expensive))
+
+NY <- hmo[hmo$location=="NEW YORK",]
+expensivePercentageNY <- sum(NY$expensive=="1")/nrow(NY)
+
+NJ <- hmo[hmo$location=="NEW JERSEY",]
+expensivePercentageNJ <- sum(NJ$expensive=="1")/nrow(NJ)
+
+MA <- hmo[hmo$location=="MASSACHUSETTS",]
+expensivePercentageMA <- sum(MA$expensive=="1")/nrow(MA)
+
+PA <- hmo[hmo$location=="PENNSYLVANIA",]
+expensivePercentagePA <- sum(PA$expensive=="1")/nrow(PA)
+
+CT <- hmo[hmo$location=="CONNECTICUT",]
+expensivePercentageCT <- sum(CT$expensive=="1")/nrow(CT)
+
+RI <- hmo[hmo$location=="RHODE ISLAND",]
+expensivePercentageRI <- sum(RI$expensive=="1")/nrow(RI)
+
+MD <- hmo[hmo$location=="MARYLAND",]
+expensivePercentageMD <- sum(MD$expensive=="1")/nrow(MD)
+
+StateX <- c("NY","NJ","MA","PA","CT","RI","MD")
+expensivePercentage <- c(expensivePercentageNY,
+                         expensivePercentageNJ,
+                         expensivePercentageMA,
+                         expensivePercentagePA,
+                         expensivePercentageCT,
+                         expensivePercentageRI,
+                         expensivePercentageMD)
+
+expensiveFrequency <- c(sum(NY$expensive=="1"),
+                        sum(NJ$expensive=="1"),
+                        sum(MA$expensive=="1"),
+                        sum(PA$expensive=="1"),
+                        sum(CT$expensive=="1"),
+                        sum(RI$expensive=="1"),
+                        sum(MD$expensive=="1"))
+
+expensivePercentageDF <- data.frame(StateX,expensivePercentage,expensiveFrequency)
+
+bar7 <- ggplot(expensivePercentageDF, aes(x=StateX, y=expensivePercentage)) + geom_bar(stat="identity") 
+bar7 
+
+bar8 <- ggplot(expensivePercentageDF, aes(x=StateX, y=expensiveFrequency)) + geom_bar(stat="identity") 
+bar8
+
+EO <- hmo[hmo$bmicategory=="Extremely Obese",]
+expensivePercentageEO <- sum(EO$expensive=="1")/nrow(EO)
+
+HL <- hmo[hmo$bmicategory=="Healthy",]
+expensivePercentageHL <- sum(HL$expensive=="1")/nrow(HL)
+
+OB <- hmo[hmo$bmicategory=="Obese",]
+expensivePercentageOB <- sum(OB$expensive=="1")/nrow(OB)
+
+OW <- hmo[hmo$bmicategory=="Overweight",]
+expensivePercentageOW <- sum(OW$expensive=="1")/nrow(OW)
+
+UW <- hmo[hmo$bmicategory=="Underweight",]
+expensivePercentageUW <- sum(UW$expensive=="1")/nrow(UW)
+
+BmiX <- c("EO","HL","OB","OW","UW")
+BmiexpensivePercentage <- c(expensivePercentageEO,
+                         expensivePercentageHL,
+                         expensivePercentageOB,
+                         expensivePercentageOW,
+                         expensivePercentageUW)
+
+BmiexpensiveFrequency <- c(sum(EO$expensive=="1"),
+                        sum(HL$expensive=="1"),
+                        sum(OB$expensive=="1"),
+                        sum(OW$expensive=="1"),
+                        sum(UW$expensive=="1"))
+BmiexpensivePercentageDF <- data.frame(BmiX,BmiexpensivePercentage,BmiexpensiveFrequency)
+
+bar9 <- ggplot(BmiexpensivePercentageDF, aes(x=BmiX, y=BmiexpensivePercentage)) + geom_bar(stat="identity") 
+bar9
+
+bar10 <- ggplot(BmiexpensivePercentageDF, aes(x=BmiX, y=BmiexpensiveFrequency)) + geom_bar(stat="identity") 
+bar10
+
+YA <- hmo[hmo$agecategory=="Young-adults",]
+expensivePercentageYA <- sum(YA$expensive=="1")/nrow(YA)
+
+MidA <- hmo[hmo$agecategory=="Middle-aged",]
+expensivePercentageMidA <- sum(MidA$expensive=="1")/nrow(MidA)
+
+OA <- hmo[hmo$agecategory=="older-adults",]
+expensivePercentageOA <- sum(OA$expensive=="1")/nrow(OA)
+
+AgeX <- c("YA","MidA","OA")
+AgeexpensivePercentage <- c(expensivePercentageYA,
+                         expensivePercentageMidA,
+                         expensivePercentageOA)
+
+AgeexpensiveFrequency <- c(sum(YA$expensive=="1"),
+                        sum(MidA$expensive=="1"),
+                        sum(OA$expensive=="1"))
+
+AgeexpensivePercentageDF <- data.frame(AgeX,AgeexpensivePercentage,AgeexpensiveFrequency)
+
+bar11 <- ggplot(AgeexpensivePercentageDF, aes(x=AgeX, y=AgeexpensivePercentage)) + geom_bar(stat="identity") 
+bar11
+
+bar12 <- ggplot(AgeexpensivePercentageDF, aes(x=AgeX, y=AgeexpensiveFrequency)) + geom_bar(stat="identity") 
+bar12
+
+```
+
+```{r}
+# training the model
+library(caret)
+library(kernlab)
+hmo$expensive <- as.factor(hmo$expensive)
+
+HMO <- select(hmo,-cost,-X)
+
+# creating the training set and the testing set
+set.seed(687)
+trainList <- createDataPartition(y=HMO$expensive,p=.67,list=FALSE)
+training <- HMO[trainList,]
+testing <- HMO[-trainList,]
+
+# training the SVM model
+# train the model with all variables
+svm.model1 <- train(expensive ~ ., data = training,
+method = "svmRadial",
+trControl=trainControl(method = "none"),
+preProcess = c("center", "scale"))
+svm.model1
+
+# another way to train the SVM model
+svm.model2 <- ksvm(expensive ~., data=training,
+C=5,cross=3, prob.model = TRUE)
+svm.model2
+
+# predicting the testing set and looking at the confusion matrix
+svmPred1 <- predict(svm.model1, newdata=testing)
+confusionMatrix(svmPred1, testing$expensive)
+
+svmPred2 <- predict(svm.model2, newdata=testing)
+confusionMatrix(svmPred2, testing$expensive)
+
+# the first model has a higher sensitivity
+
+```
+
+```{r}
+# predicting the test sample
+
+testData <- read_csv("HMO_TEST_data_sample.csv")
+
+testData$agecategory[18<=testData$age & testData$age<=34] <- "Young-adults"
+testData$agecategory[35<=testData$age & testData$age<=50] <- "Middle-aged"
+testData$agecategory[51<=testData$age & testData$age<=66] <- "older-adults"
+  
+testData$bmicategory[testData$bmi <= 18 ] <- "Underweight"
+testData$bmicategory[testData$bmi >= 18 & testData$bmi < 25  ] <- "Healthy"
+testData$bmicategory[testData$bmi >= 25 & testData$bmi < 30  ] <- "Overweight"
+testData$bmicategory[testData$bmi >= 30 & testData$bmi < 40  ] <- "Obese"
+testData$bmicategory[testData$bmi >= 40 & testData$bmi < 65  ] <- "Extremely Obese"
+  
+testData <- select(testData,-X)
+
+testing2 <- select(testing,-expensive)
+total <- rbind(testing2,testData)
+
+svmPred3 <- predict(svm.model1, total)
+
+svmPred3[2502:2521]
+testData$expensive_svm <- svmPred3[2502:2521]
+```
+
+```{r}
+# creating the tree model
+
+library(e1071)
+# train the model with rpart method
+trctrl <- trainControl(method="repeatedcv", number=10)
+model.rpart <- train(expensive ~ ., method = "rpart",
+data = training,
+trControl=trctrl,tuneLength = 50)
+# getting the result of model.rpart
+model.rpart
+
+library(rpart.plot)
+## Loading required package: rpart
+library(rpart)
+# getting the plot of model.rpart$finalModel
+rpart.plot(model.rpart$finalModel)
+
+# predicting the testing set
+predictValues <- predict(model.rpart,newdata=testing)
+# getting the confusion matrix
+# looking at the accuracy, no information rate and the p-value
+confusionMatrix(predictValues, testing$expensive)
+
+#predicting the test sample
+predictValues2 <- predict(model.rpart,newdata=testData)
+# getting the confusion matrix
+# looking at the accuracy, no information rate and the p-value
+predictValues2
+testData$expensive_tree <- predictValues2
+#View(testData)
+```
+
+
+```{r}
+# creating the association rules
+library(arules)
+library(arulesViz)
+str(hmo)
+hmo_new <- data.frame(X=as.factor(hmo$X),
+                      agecategory=as.factor(hmo$agecategory),
+                      bmicategory=as.factor(hmo$bmicategory),
+                      children=as.factor(hmo$children),
+                      smoker=as.factor(hmo$smoker),
+                      location=as.factor(hmo$location),
+                      location_type=as.factor(hmo$location_type),
+                      education_level=as.factor(hmo$education_level),
+                      yearly_physical=as.factor(hmo$yearly_physical),
+                      exercise=as.factor(hmo$exercise),
+                      married=as.factor(hmo$married),
+                      hypertension=as.factor(hmo$hypertension),
+                      gender=as.factor(hmo$gender),
+                      expensive=as.factor(hmo$expensive)
+)
+hmoX <- as(hmo_new, "transactions") 
+#itemFrequency(hmoX)
+itemFrequencyPlot(hmoX,topN=20)
+inspect(hmoX[1:10]) 
+
+ruleset <- apriori(hmoX,
+                   parameter = list(support = 0.05,confidence = 0.83),
+                   control=list(verbose=F),
+ appearance=list(default="lhs",rhs=("expensive=1")))
+summary(ruleset)
+inspectDT(ruleset)
+
+```
+
+
+
+
+
+
+```
+
